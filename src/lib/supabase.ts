@@ -4,7 +4,7 @@ import type { Database } from './database.types'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
-export const isSupabaseConfigured = Boolean(
+const initialConfigured = Boolean(
   supabaseUrl &&
   supabaseAnonKey &&
   !supabaseUrl.includes('placeholder') &&
@@ -15,7 +15,17 @@ export const isSupabaseConfigured = Boolean(
       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')))
 )
 
-export const supabase = isSupabaseConfigured
+export let isSupabaseConfigured = initialConfigured
+
+export function setSupabaseConfigured(value: boolean): void {
+  isSupabaseConfigured = value
+}
+
+export function resetSupabaseConfigured(): void {
+  isSupabaseConfigured = initialConfigured
+}
+
+export const supabase = (supabaseUrl && supabaseAnonKey)
   ? createClient<Database>(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,

@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
 import type { Company } from '../../types/database'
-import { loginOwner, loginOwnerForCompany } from '../../lib/detailing-engine'
+import { loginOwnerForCompany } from '../../lib/detailing-engine'
 import { ShieldCheck, Lock, User, Eye, EyeSlash, SpinnerGap, WarningCircle, ArrowLeft } from '@phosphor-icons/react'
 
 interface AdminLoginProps {
-  company?: Company
+  company: Company
   onLoginSuccess: () => void
 }
 
@@ -21,11 +21,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ company, onLoginSuccess 
     setLoading(true)
 
     try {
-      if (company) {
-        await loginOwnerForCompany(company.id, login.trim(), password.trim())
-      } else {
-        await loginOwner(login.trim(), password.trim())
-      }
+      await loginOwnerForCompany(company.id, login.trim(), password.trim())
       onLoginSuccess()
     } catch (err: unknown) {
       setError(
@@ -38,7 +34,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ company, onLoginSuccess 
     }
   }
 
-  const brandColor = company?.design_settings.primary_color || '#E5A93C'
+  const brandColor = company.design_settings.primary_color || '#E5A93C'
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#08080A] px-4 py-12 text-zinc-100">
@@ -72,11 +68,8 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ company, onLoginSuccess 
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-xs font-medium text-zinc-400">
-                Логин
+                Email администратора
               </label>
-              <span className="text-[10px] text-zinc-500">
-                Регистрозависимый
-              </span>
             </div>
             <div className="relative">
               <User size={18} className="absolute left-3.5 top-3.5 text-zinc-500" />
@@ -85,16 +78,13 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ company, onLoginSuccess 
                 required
                 value={login}
                 onChange={(e) => setLogin(e.target.value)}
-                placeholder="Админ"
+                placeholder="owner@detail-lab.kz"
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
                 className="w-full rounded-xl border border-white/10 bg-zinc-900/90 py-3 pl-10 pr-4 text-sm text-white placeholder-zinc-500 outline-none transition-colors focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
               />
             </div>
-            <p className="mt-1 text-[11px] text-zinc-500">
-              Логин чувствителен к регистру и языку (Админ ≠ админ ≠ Admin).
-            </p>
           </div>
 
           <div>

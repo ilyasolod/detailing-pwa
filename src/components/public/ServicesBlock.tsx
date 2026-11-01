@@ -52,8 +52,17 @@ export const ServicesBlock: React.FC<ServicesBlockProps> = ({
           return (
             <div
               key={service.id}
+              role="checkbox"
+              aria-checked={isSelected}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                  e.preventDefault()
+                  onToggleService(service.id)
+                }
+              }}
               onClick={() => onToggleService(service.id)}
-              className={`group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border p-4 sm:p-5 transition-all duration-200 cursor-pointer ${
+              className={`group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border p-4 sm:p-5 transition-all duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-400 ${
                 isSelected
                   ? 'border-white/40 bg-zinc-800/80 shadow-lg ring-1 ring-white/30'
                   : 'border-white/10 bg-zinc-900/60 hover:border-white/20 hover:bg-zinc-900'

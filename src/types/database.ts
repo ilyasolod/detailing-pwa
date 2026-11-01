@@ -121,6 +121,7 @@ export interface Booking {
   ends_at: string // ISO
   status: BookingStatus
   expires_at: string | null // ISO (created_at + 30 min)
+  idempotency_key?: string | null
   created_at: string
   updated_at?: string
 
@@ -132,7 +133,6 @@ export interface Booking {
   client_vehicle?: string
   price_snapshot?: number
   access_token_hash?: string
-  idempotency_key?: string
   start_at?: string
   end_at?: string
   notes?: string

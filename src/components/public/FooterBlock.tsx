@@ -73,7 +73,7 @@ export const FooterBlock: React.FC<FooterBlockProps> = ({
               href={`https://wa.me/${company.whatsapp_number.replace(/\D/g, '')}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 px-4 py-2.5 font-semibold text-white transition-colors"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 px-4 py-2.5 font-semibold text-white transition-colors"
             >
               <WhatsappLogo size={18} className="text-emerald-400" />
               <span>WhatsApp студии</span>

@@ -9,13 +9,15 @@ import { ServicesBlock } from '../components/public/ServicesBlock'
 import { BookingFormBlock } from '../components/public/BookingFormBlock'
 import { BookingSuccessModal } from '../components/public/BookingSuccessModal'
 import { FooterBlock } from '../components/public/FooterBlock'
-import { SpinnerGap, WarningCircle } from '@phosphor-icons/react'
+import { SpinnerGap, WarningCircle, WifiSlash, ArrowCounterClockwise } from '@phosphor-icons/react'
 
 export const PublicCompanyPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>()
   const [data, setData] = useState<CompanyPublicData | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const [isNotFound, setIsNotFound] = useState<boolean>(false)
+  const [retryCount, setRetryCount] = useState<number>(0)
 
   // Selected services state for multi-selection
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
@@ -26,6 +28,7 @@ export const PublicCompanyPage: React.FC = () => {
   useEffect(() => {
     let isCurrent = true
     if (!slug) {
+      setIsNotFound(true)
       setError('Не указан идентификатор студии')
       setLoading(false)
       return
@@ -33,13 +36,16 @@ export const PublicCompanyPage: React.FC = () => {
 
     setLoading(true)
     setError(null)
+    setIsNotFound(false)
 
     getCompanyBySlug(slug)
       .then((res) => {
         if (!isCurrent) return
         if (!res) {
+          setIsNotFound(true)
           setError(`Детейлинг-центр «${slug}» не найден или деактивирован.`)
         } else {
+          setIsNotFound(false)
           setData(res)
           // Default: select the first service to provide immediate calculation
           if (res.services.length > 0 && res.services[0]) {
@@ -49,6 +55,7 @@ export const PublicCompanyPage: React.FC = () => {
       })
       .catch((err) => {
         if (isCurrent) {
+          setIsNotFound(false)
           setError(err instanceof Error ? err.message : 'Ошибка при загрузке студии')
         }
       })
@@ -59,7 +66,11 @@ export const PublicCompanyPage: React.FC = () => {
     return () => {
       isCurrent = false
     }
-  }, [slug])
+  }, [slug, retryCount])
+
+  const handleRetry = () => {
+    setRetryCount((prev) => prev + 1)
+  }
 
   const handleToggleService = (serviceId: string) => {
     setSelectedServiceIds((prev) => {
@@ -89,14 +100,32 @@ export const PublicCompanyPage: React.FC = () => {
   }
 
   if (error || !data) {
+    const isNetworkOrServerError = !isNotFound && Boolean(error)
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#08080A] p-6 text-center text-white">
         <div className="rounded-3xl border border-white/10 bg-zinc-900/80 p-8 max-w-md w-full shadow-2xl">
-          <WarningCircle size={44} className="mx-auto text-amber-400 mb-4" />
-          <h2 className="text-xl font-bold">Студия не найдена</h2>
+          {isNetworkOrServerError ? (
+            <WifiSlash size={44} className="mx-auto text-amber-400 mb-4" />
+          ) : (
+            <WarningCircle size={44} className="mx-auto text-amber-400 mb-4" />
+          )}
+          <h2 className="text-xl font-bold">
+            {isNetworkOrServerError ? 'Ошибка подключения к серверу' : 'Студия не найдена'}
+          </h2>
           <p className="mt-2 text-sm text-zinc-400">
             {error || 'Детейлинг-центр не зарегистрирован в системе или ссылка некорректна.'}
           </p>
+
+          {isNetworkOrServerError && (
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold px-5 py-2.5 text-sm transition-colors cursor-pointer w-full shadow-lg"
+            >
+              <ArrowCounterClockwise size={18} weight="bold" />
+              Повторить попытку
+            </button>
+          )}
         </div>
       </div>
     )

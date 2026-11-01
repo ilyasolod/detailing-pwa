@@ -57,6 +57,9 @@ export const PortfolioBlock: React.FC<PortfolioBlockProps> = ({ photos, brandCol
       {/* Lightbox Modal */}
       {selectedPhoto && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Просмотр фотографии работы"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md animate-fade-up"
           onClick={() => setSelectedPhoto(null)}
         >
@@ -64,7 +67,7 @@ export const PortfolioBlock: React.FC<PortfolioBlockProps> = ({ photos, brandCol
             type="button"
             onClick={() => setSelectedPhoto(null)}
             className="absolute top-6 right-6 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white transition-colors hover:bg-white hover:text-black"
-            aria-label="Закрыть"
+            aria-label="Закрыть просмотр"
           >
             <X size={22} weight="bold" />
           </button>

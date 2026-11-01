@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS companies (
     whatsapp_number   text        NOT NULL,
     timezone          text        NOT NULL DEFAULT 'Asia/Almaty',
     design_settings   jsonb       NOT NULL DEFAULT '{}'::jsonb,
+    duration_calculation_mode text NOT NULL DEFAULT 'max' CHECK (duration_calculation_mode IN ('max', 'sum')),
     active            boolean     NOT NULL DEFAULT true,
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now()
@@ -118,16 +119,30 @@ CREATE TABLE IF NOT EXISTS bookings (
     expires_at              timestamptz,
     created_at              timestamptz   NOT NULL DEFAULT now(),
     updated_at              timestamptz   NOT NULL DEFAULT now(),
-    CHECK (ends_at > starts_at)
+    CHECK (ends_at > starts_at),
+    CONSTRAINT uq_bookings_company_public_code UNIQUE (company_id, public_code)
 );
 CREATE INDEX IF NOT EXISTS idx_bookings_company_status ON bookings(company_id, status);
 CREATE INDEX IF NOT EXISTS idx_bookings_company_range ON bookings(company_id, starts_at, ends_at);
 CREATE INDEX IF NOT EXISTS idx_bookings_expires ON bookings(expires_at) WHERE status = 'pending';
 CREATE INDEX IF NOT EXISTS idx_bookings_public_code ON bookings(public_code);
 
+-- Guarantee unique constraint idempotently if table already existed
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'uq_bookings_company_public_code'
+    ) THEN
+        ALTER TABLE bookings ADD CONSTRAINT uq_bookings_company_public_code UNIQUE (company_id, public_code);
+    END IF;
+END $$;
+
 -- Auto-update updated_at helper
 CREATE OR REPLACE FUNCTION set_updated_at()
-RETURNS trigger LANGUAGE plpgsql AS $$
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
 BEGIN
     NEW.updated_at = now();
     RETURN NEW;

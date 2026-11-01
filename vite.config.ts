@@ -79,6 +79,7 @@ function centralSyncPlugin(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: process.env.VITE_BASE_PATH || '/',
   plugins: [
     react(),
     tailwindcss(),
@@ -91,6 +92,25 @@ export default defineConfig({
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
       },
+      manifest: {
+        name: 'Detailing PWA — Онлайн-запись и управление',
+        short_name: 'Detailing PWA',
+        description: 'Премиальная система онлайн-записи и управления для детейлинг-центров',
+        theme_color: '#0A0A0C',
+        background_color: '#0A0A0C',
+        display: 'standalone',
+        orientation: 'portrait',
+        start_url: '/',
+        scope: '/',
+        icons: [
+          {
+            src: '/favicon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any maskable',
+          },
+        ],
+      },
       devOptions: {
         enabled: true,
         type: 'module',
@@ -100,6 +120,21 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@phosphor-icons')) return 'icons'
+            if (id.includes('@supabase')) return 'supabase'
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router') || id.includes('@tanstack')) {
+              return 'vendor'
+            }
+          }
+        },
+      },
     },
   },
 })

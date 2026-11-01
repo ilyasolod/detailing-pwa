@@ -38,6 +38,7 @@ import {
   Plus,
   CheckCircle,
   XCircle,
+  WarningCircle,
   WhatsappLogo,
   ArrowSquareOut,
   Trash,
@@ -66,6 +67,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ companyId, onLog
   const [loading, setLoading] = useState<boolean>(true)
   const [saving, setSaving] = useState<boolean>(false)
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+  const [dashboardError, setDashboardError] = useState<string | null>(null)
 
   // State
   const [company, setCompany] = useState<Company | null>(null)
@@ -136,6 +138,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ companyId, onLog
 
   const loadData = async () => {
     setLoading(true)
+    setDashboardError(null)
     try {
       const data = await getOwnerDashboardData(companyId)
       const creds = getCompanyCredentials(companyId)
@@ -149,6 +152,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ companyId, onLog
       setBlocks(data.blocked_intervals)
     } catch (err: unknown) {
       console.error(err)
+      setDashboardError(err instanceof Error ? err.message : 'Не удалось загрузить данные панели управления')
     } finally {
       setLoading(false)
     }
@@ -440,11 +444,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ companyId, onLog
     }
   }
 
-  if (loading || !company) {
+  if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#08080A] text-white">
         <SpinnerGap size={36} className="animate-spin text-amber-400 mb-3" />
         <p className="text-sm text-zinc-400">Загрузка панели управления...</p>
+      </div>
+    )
+  }
+
+  if (dashboardError || !company) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#08080A] p-6 text-center text-white">
+        <div className="rounded-3xl border border-white/10 bg-zinc-900/80 p-8 max-w-md w-full shadow-2xl">
+          <WarningCircle size={44} className="mx-auto text-amber-400 mb-4" />
+          <h2 className="text-xl font-bold">Ошибка загрузки панели управления</h2>
+          <p className="mt-2 text-sm text-zinc-400">
+            {dashboardError || 'Не удалось загрузить данные компании или отсутствуют права доступа.'}
+          </p>
+          <button
+            type="button"
+            onClick={loadData}
+            className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold px-5 py-2.5 text-sm transition-colors cursor-pointer w-full shadow-lg"
+          >
+            Повторить попытку
+          </button>
+        </div>
       </div>
     )
   }

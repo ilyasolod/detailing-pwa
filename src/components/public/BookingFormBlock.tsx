@@ -9,6 +9,7 @@ import {
   WarningCircle,
   SpinnerGap,
   WhatsappLogo,
+  ArrowCounterClockwise,
 } from '@phosphor-icons/react'
 import {
   getAvailableSlots,
@@ -71,6 +72,8 @@ export const BookingFormBlock: React.FC<BookingFormBlockProps> = ({
   const [slots, setSlots] = useState<AvailableSlot[]>([])
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null)
   const [loadingSlots, setLoadingSlots] = useState<boolean>(false)
+  const [slotsError, setSlotsError] = useState<string | null>(null)
+  const [slotsRetryCount, setSlotsRetryCount] = useState<number>(0)
 
   // Customer vehicle & contact inputs
   const [clientName, setClientName] = useState<string>('')
@@ -81,6 +84,11 @@ export const BookingFormBlock: React.FC<BookingFormBlockProps> = ({
   // State
   const [submitting, setSubmitting] = useState<boolean>(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(() =>
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : 'bkey-' + Math.random().toString(36).slice(2)
+  )
 
   const selectedServices = services.filter((s) => selectedServiceIds.includes(s.id))
   const isSumMode = company.duration_calculation_mode === 'sum'
@@ -103,23 +111,34 @@ export const BookingFormBlock: React.FC<BookingFormBlockProps> = ({
     if (!selectedServiceIds.length) {
       setSlots([])
       setSelectedSlot(null)
+      setSlotsError(null)
       return
     }
 
     setLoadingSlots(true)
     setSelectedSlot(null)
+    setSlotsError(null)
 
     getAvailableSlots(company.id, selectedServiceIds, selectedDate)
       .then((data) => {
         if (isCurrent) {
           setSlots(data)
+          setSlotsError(null)
           if (data.length > 0 && data[0]) {
             setSelectedSlot(data[0])
           }
         }
       })
-      .catch(() => {
-        if (isCurrent) setSlots([])
+      .catch((err) => {
+        if (isCurrent) {
+          setSlots([])
+          setSelectedSlot(null)
+          setSlotsError(
+            err instanceof Error
+              ? err.message
+              : 'Не удалось загрузить доступные интервалы с сервера.'
+          )
+        }
       })
       .finally(() => {
         if (isCurrent) setLoadingSlots(false)
@@ -128,7 +147,20 @@ export const BookingFormBlock: React.FC<BookingFormBlockProps> = ({
     return () => {
       isCurrent = false
     }
-  }, [company.id, selectedServiceIds, selectedDate])
+  }, [company.id, selectedServiceIds, selectedDate, slotsRetryCount])
+
+  const handleRetrySlots = () => {
+    setSlotsRetryCount((c) => c + 1)
+  }
+
+  const handleSelectSlot = (slot: AvailableSlot) => {
+    setSelectedSlot(slot)
+    setIdempotencyKey(
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : 'bkey-' + Math.random().toString(36).slice(2)
+    )
+  }
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value
@@ -138,6 +170,7 @@ export const BookingFormBlock: React.FC<BookingFormBlockProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (submitting) return
     setFormError(null)
 
     if (!selectedServiceIds.length) {
@@ -177,22 +210,45 @@ export const BookingFormBlock: React.FC<BookingFormBlockProps> = ({
         carMake,
         carModel,
         startsAt: selectedSlot.starts_at,
+        idempotencyKey,
       })
 
-      // 1. Show confirmation modal in the app
+      // Generate a fresh idempotency key for any future booking attempts
+      setIdempotencyKey(
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : 'bkey-' + Math.random().toString(36).slice(2)
+      )
+
+      // 1. Show confirmation modal in the app (must remain visible)
       onBookingCreated(booking)
 
       // 2. Build WhatsApp link with complete reservation details
       const waUrl = buildWhatsAppLink(company, booking)
 
-      // 3. Open WhatsApp directly (navigates to WhatsApp app on mobile / web on desktop)
-      window.location.href = waUrl
+      // 3. Open WhatsApp: on Desktop open in new tab so modal stays open; on mobile trigger app link
+      const isMobile =
+        typeof navigator !== 'undefined' &&
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+
+      if (isMobile) {
+        window.location.href = waUrl
+      } else {
+        try {
+          window.open(waUrl, '_blank', 'noopener,noreferrer')
+        } catch {
+          // Popup blocked by browser: modal is already open with explicit "Перейти в WhatsApp" button
+        }
+      }
     } catch (err: unknown) {
-      setFormError(
-        err instanceof Error
-          ? err.message
-          : 'Не удалось создать заявку. Попробуйте выбрать другой интервал времени.'
-      )
+      const rawMessage = err instanceof Error ? err.message : ''
+      if (rawMessage.includes('different booking parameters')) {
+        setFormError('Данные заявки были изменены после отправки. Пожалуйста, обновите страницу или повторите выбор времени.')
+      } else {
+        setFormError(
+          rawMessage || 'Не удалось создать заявку. Попробуйте выбрать другой интервал времени.'
+        )
+      }
     } finally {
       setSubmitting(false)
     }
@@ -306,6 +362,24 @@ export const BookingFormBlock: React.FC<BookingFormBlockProps> = ({
               <div className="h-24 flex items-center justify-center rounded-xl border border-white/10 bg-zinc-900/40">
                 <SpinnerGap size={24} className="animate-spin text-zinc-400" />
               </div>
+            ) : slotsError ? (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 text-center">
+                <WarningCircle size={28} className="mx-auto text-amber-400 mb-2" />
+                <p className="text-sm font-semibold text-zinc-200">
+                  {slotsError}
+                </p>
+                <p className="mt-1 text-xs text-zinc-400">
+                  Не удалось загрузить доступные интервалы с сервера. Попробуйте обновить запрос.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleRetrySlots}
+                  className="mt-3 inline-flex items-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold px-4 py-2 text-xs transition-colors cursor-pointer shadow"
+                >
+                  <ArrowCounterClockwise size={14} weight="bold" />
+                  Повторить запрос
+                </button>
+              </div>
             ) : slots.length === 0 ? (
               <div className="rounded-xl border border-white/10 bg-zinc-900/40 p-6 text-center">
                 <Clock size={28} className="mx-auto text-zinc-500 mb-2" />
@@ -324,7 +398,7 @@ export const BookingFormBlock: React.FC<BookingFormBlockProps> = ({
                     <button
                       key={slot.starts_at}
                       type="button"
-                      onClick={() => setSelectedSlot(slot)}
+                      onClick={() => handleSelectSlot(slot)}
                       className={`flex flex-col items-center justify-center rounded-xl border py-2.5 px-3 transition-all cursor-pointer ${
                         isSelected
                           ? 'border-transparent text-black font-extrabold shadow-md scale-[1.03]'

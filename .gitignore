@@ -17,6 +17,16 @@ dist-ssr
 .env.*
 !.env.example
 
+# Temporary and scratch files
+scratch/
+test-results/
+playwright-report/
+blob-report/
+
+# Agent and AI local state
+.agents/
+skills-lock.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

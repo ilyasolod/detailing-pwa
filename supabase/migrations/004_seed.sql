@@ -1,75 +1,22 @@
 -- ============================================================================
 -- 004_seed.sql — Initial Seed Data for Detailing Centers
 -- ============================================================================
--- 1. Creates initial Demo Accounts in auth.users (Detail Lab & Auto Studio)
--- 2. Inserts companies: Detail Lab (Almaty), Auto Studio (Astana), Prime Detailing (Shymkent)
--- 3. Inserts services, schedules, breaks, and gallery photos.
+-- Inserts demo companies: Detail Lab (Almaty) and Auto Studio (Astana)
+-- with active services, portfolio photos, weekly schedules, and break times.
+--
+-- NOTE ON AUTH USERS:
+-- Real owner accounts are created securely via Supabase Dashboard / Auth Admin API.
+-- To assign an owner to a studio after creating their Supabase Auth account:
+-- INSERT INTO company_admins (company_id, user_id, role)
+-- VALUES ('<company-uuid>', '<auth-user-uuid>', 'owner')
+-- ON CONFLICT (company_id, user_id) DO NOTHING;
 -- ============================================================================
 
 BEGIN;
 
--- ── 1. Create auth users for testing owner panel ─────────────────────────────
--- Detail Lab Owner
-INSERT INTO auth.users (
-    id,
-    instance_id,
-    email,
-    encrypted_password,
-    email_confirmed_at,
-    raw_app_meta_data,
-    raw_user_meta_data,
-    aud,
-    role,
-    created_at,
-    updated_at
-)
-VALUES (
-    '00000000-0000-0000-0000-000000000001',
-    '00000000-0000-0000-0000-000000000000',
-    'owner@detail-lab.kz',
-    crypt('password123', gen_salt('bf')),
-    now(),
-    '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"full_name":"Владелец Detail Lab"}'::jsonb,
-    'authenticated',
-    'authenticated',
-    now(),
-    now()
-)
-ON CONFLICT (id) DO NOTHING;
-
--- Auto Studio Owner
-INSERT INTO auth.users (
-    id,
-    instance_id,
-    email,
-    encrypted_password,
-    email_confirmed_at,
-    raw_app_meta_data,
-    raw_user_meta_data,
-    aud,
-    role,
-    created_at,
-    updated_at
-)
-VALUES (
-    '00000000-0000-0000-0000-000000000002',
-    '00000000-0000-0000-0000-000000000000',
-    'owner@auto-studio.kz',
-    crypt('password123', gen_salt('bf')),
-    now(),
-    '{"provider":"email","providers":["email"]}'::jsonb,
-    '{"full_name":"Владелец Auto Studio"}'::jsonb,
-    'authenticated',
-    'authenticated',
-    now(),
-    now()
-)
-ON CONFLICT (id) DO NOTHING;
-
--- ── 2. COMPANY 1: Detail Lab (Алматы) ────────────────────────────────────────
+-- ── 1. COMPANY 1: Detail Lab (Алматы) ────────────────────────────────────────
 INSERT INTO companies (
-    id, slug, name, description, logo_url, address, whatsapp_number, timezone, design_settings, active
+    id, slug, name, description, logo_url, address, whatsapp_number, timezone, design_settings, duration_calculation_mode, active
 )
 VALUES (
     '11111111-1111-1111-1111-111111111111',
@@ -92,17 +39,14 @@ VALUES (
         "hero_image": "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=1600&q=85",
         "image_style": "rounded-xl shadow-2xl"
     }'::jsonb,
+    'max',
     true
 )
 ON CONFLICT (id) DO UPDATE SET
     slug = EXCLUDED.slug,
     name = EXCLUDED.name,
-    design_settings = EXCLUDED.design_settings;
-
--- Link owner to Detail Lab
-INSERT INTO company_admins (company_id, user_id, role)
-VALUES ('11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000001', 'owner')
-ON CONFLICT (company_id, user_id) DO NOTHING;
+    design_settings = EXCLUDED.design_settings,
+    duration_calculation_mode = EXCLUDED.duration_calculation_mode;
 
 -- Services for Detail Lab
 INSERT INTO services (id, company_id, name, description, price_from, duration_minutes, image_url, active, sort_order)
@@ -146,9 +90,9 @@ VALUES
     ('dddd0001-0001-0001-0001-000000000006', '11111111-1111-1111-1111-111111111111', 6, '13:00', '14:00')
 ON CONFLICT DO NOTHING;
 
--- ── 3. COMPANY 2: Auto Studio (Астана) ───────────────────────────────────────
+-- ── 2. COMPANY 2: Auto Studio (Астана) ───────────────────────────────────────
 INSERT INTO companies (
-    id, slug, name, description, logo_url, address, whatsapp_number, timezone, design_settings, active
+    id, slug, name, description, logo_url, address, whatsapp_number, timezone, design_settings, duration_calculation_mode, active
 )
 VALUES (
     '22222222-2222-2222-2222-222222222222',
@@ -171,16 +115,14 @@ VALUES (
         "hero_image": "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1600&q=85",
         "image_style": "rounded-lg border border-blue-500/20"
     }'::jsonb,
+    'max',
     true
 )
 ON CONFLICT (id) DO UPDATE SET
     slug = EXCLUDED.slug,
     name = EXCLUDED.name,
-    design_settings = EXCLUDED.design_settings;
-
-INSERT INTO company_admins (company_id, user_id, role)
-VALUES ('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000002', 'owner')
-ON CONFLICT (company_id, user_id) DO NOTHING;
+    design_settings = EXCLUDED.design_settings,
+    duration_calculation_mode = EXCLUDED.duration_calculation_mode;
 
 INSERT INTO services (id, company_id, name, description, price_from, duration_minutes, image_url, active, sort_order)
 VALUES

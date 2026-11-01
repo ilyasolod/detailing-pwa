@@ -51,9 +51,6 @@ BEGIN
         RETURN NULL;
     END IF;
 
-    -- Clean expired bookings on fetch
-    PERFORM cleanup_expired_bookings(v_company.id);
-
     -- Active services
     SELECT COALESCE(jsonb_agg(to_jsonb(s)), '[]'::jsonb)
     INTO v_services
@@ -105,6 +102,7 @@ BEGIN
             'whatsapp_number', v_company.whatsapp_number,
             'timezone', v_company.timezone,
             'design_settings', v_company.design_settings,
+            'duration_calculation_mode', v_company.duration_calculation_mode,
             'active', v_company.active,
             'created_at', v_company.created_at
         ),
@@ -149,13 +147,22 @@ BEGIN
         RETURN '[]'::jsonb;
     END IF;
 
-    -- Sum service durations
-    SELECT COALESCE(SUM(duration_minutes), 0)
-    INTO v_total_duration
-    FROM services
-    WHERE company_id = p_company_id
-      AND id = ANY(p_service_ids)
-      AND active = true;
+    -- Calculate service duration based on duration_calculation_mode ('max' vs 'sum')
+    IF v_company.duration_calculation_mode = 'sum' THEN
+        SELECT COALESCE(SUM(duration_minutes), 0)
+        INTO v_total_duration
+        FROM services
+        WHERE company_id = p_company_id
+          AND id = ANY(p_service_ids)
+          AND active = true;
+    ELSE
+        SELECT COALESCE(MAX(duration_minutes), 0)
+        INTO v_total_duration
+        FROM services
+        WHERE company_id = p_company_id
+          AND id = ANY(p_service_ids)
+          AND active = true;
+    END IF;
 
     IF v_total_duration <= 0 THEN
         RETURN '[]'::jsonb;
@@ -285,7 +292,10 @@ BEGIN
     -- 3. Load & calculate selected services from DB directly
     SELECT
         COALESCE(SUM(price_from), 0),
-        COALESCE(SUM(duration_minutes), 0),
+        CASE
+            WHEN v_company.duration_calculation_mode = 'sum' THEN COALESCE(SUM(duration_minutes), 0)
+            ELSE COALESCE(MAX(duration_minutes), 0)
+        END,
         COALESCE(jsonb_agg(jsonb_build_object(
             'id', id,
             'name', name,
@@ -354,16 +364,35 @@ BEGIN
         RAISE EXCEPTION 'Selected slot is already occupied';
     END IF;
 
-    -- 8. Generate readable public code (e.g. DL-101)
+    -- 8. Generate unique, collision-resistant public code (e.g. DL-001)
     v_prefix := upper(regexp_replace(v_company.slug, '[^a-zA-Z0-9]', '', 'g'));
     IF length(v_prefix) > 2 THEN
         v_prefix := substring(v_prefix from 1 for 2);
-    ELSE
+    ELSIF length(v_prefix) = 0 THEN
         v_prefix := 'DL';
     END IF;
 
-    SELECT COUNT(*) + 1 INTO v_seq FROM bookings WHERE company_id = p_company_id;
-    v_public_code := v_prefix || '-' || lpad(v_seq::text, 3, '0');
+    SELECT COALESCE(
+        MAX(
+            CASE
+                WHEN public_code ~ ('^' || v_prefix || '-[0-9]+$')
+                THEN substring(public_code from ('^' || v_prefix || '-([0-9]+)$'))::int
+                ELSE 0
+            END
+        ), 0
+    ) + 1
+    INTO v_seq
+    FROM public.bookings
+    WHERE company_id = p_company_id;
+
+    LOOP
+        v_public_code := v_prefix || '-' || lpad(v_seq::text, 3, '0');
+        EXIT WHEN NOT EXISTS (
+            SELECT 1 FROM public.bookings
+            WHERE company_id = p_company_id AND public_code = v_public_code
+        );
+        v_seq := v_seq + 1;
+    END LOOP;
 
     -- 9. Insert pending reservation (expires in 30 minutes)
     INSERT INTO bookings (
@@ -500,6 +529,9 @@ BEGIN
         RAISE EXCEPTION 'Unauthorized: you are not an administrator of this company';
     END IF;
 
+    -- Concurrency guard: serialize on the company lock
+    PERFORM pg_advisory_xact_lock(hashtext(v_booking.company_id::text));
+
     SELECT * INTO v_company FROM companies WHERE id = v_booking.company_id;
     v_new_ends := p_new_starts_at + (v_booking.total_duration_minutes * interval '1 minute');
 
@@ -513,6 +545,15 @@ BEGIN
           AND tstzrange(b.starts_at, b.ends_at) && tstzrange(p_new_starts_at, v_new_ends)
     ) THEN
         RAISE EXCEPTION 'Selected new time conflicts with an existing booking';
+    END IF;
+
+    -- Validate no conflicting blocked intervals
+    IF EXISTS (
+        SELECT 1 FROM blocked_intervals bi
+        WHERE bi.company_id = v_booking.company_id
+          AND tstzrange(bi.starts_at, bi.ends_at) && tstzrange(p_new_starts_at, v_new_ends)
+    ) THEN
+        RAISE EXCEPTION 'Selected new time conflicts with a blocked interval';
     END IF;
 
     UPDATE bookings
@@ -581,14 +622,67 @@ DECLARE
     v_company     companies%ROWTYPE;
     v_seq         int;
     v_duration    int;
+    v_prefix      text := 'MAN';
 BEGIN
     IF NOT is_company_admin(p_company_id) THEN
         RAISE EXCEPTION 'Unauthorized: you are not an administrator of this company';
     END IF;
 
+    IF p_ends_at <= p_starts_at THEN
+        RAISE EXCEPTION 'End time must be after start time';
+    END IF;
+
+    -- Concurrency guard: serialize on the company lock
+    PERFORM pg_advisory_xact_lock(hashtext(p_company_id::text));
+
     SELECT * INTO v_company FROM companies WHERE id = p_company_id;
-    SELECT COUNT(*) + 1 INTO v_seq FROM bookings WHERE company_id = p_company_id;
-    v_public_code := 'MAN-' || lpad(v_seq::text, 3, '0');
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Company not found';
+    END IF;
+
+    -- Validate no conflicting bookings
+    IF EXISTS (
+        SELECT 1 FROM bookings b
+        WHERE b.company_id = p_company_id
+          AND b.status IN ('confirmed', 'pending')
+          AND (b.status = 'confirmed' OR (b.status = 'pending' AND b.expires_at > now()))
+          AND tstzrange(b.starts_at, b.ends_at) && tstzrange(p_starts_at, p_ends_at)
+    ) THEN
+        RAISE EXCEPTION 'Requested manual booking conflicts with an existing booking';
+    END IF;
+
+    -- Validate no conflicting blocked intervals
+    IF EXISTS (
+        SELECT 1 FROM blocked_intervals bi
+        WHERE bi.company_id = p_company_id
+          AND tstzrange(bi.starts_at, bi.ends_at) && tstzrange(p_starts_at, p_ends_at)
+    ) THEN
+        RAISE EXCEPTION 'Requested time conflicts with a blocked interval';
+    END IF;
+
+    -- Generate unique monotonic public code for manual booking (e.g. MAN-001)
+    SELECT COALESCE(
+        MAX(
+            CASE
+                WHEN public_code ~ '^MAN-[0-9]+$'
+                THEN substring(public_code from '^MAN-([0-9]+)$')::int
+                ELSE 0
+            END
+        ), 0
+    ) + 1
+    INTO v_seq
+    FROM public.bookings
+    WHERE company_id = p_company_id;
+
+    LOOP
+        v_public_code := v_prefix || '-' || lpad(v_seq::text, 3, '0');
+        EXIT WHEN NOT EXISTS (
+            SELECT 1 FROM public.bookings
+            WHERE company_id = p_company_id AND public_code = v_public_code
+        );
+        v_seq := v_seq + 1;
+    END LOOP;
+
     v_duration := EXTRACT(EPOCH FROM (p_ends_at - p_starts_at)) / 60;
 
     INSERT INTO bookings (
@@ -646,6 +740,24 @@ BEGIN
         RAISE EXCEPTION 'Unauthorized: you are not an administrator of this company';
     END IF;
 
+    IF p_ends_at <= p_starts_at THEN
+        RAISE EXCEPTION 'End time must be after start time';
+    END IF;
+
+    -- Concurrency guard: serialize on the company lock
+    PERFORM pg_advisory_xact_lock(hashtext(p_company_id::text));
+
+    -- Validate no conflicting bookings
+    IF EXISTS (
+        SELECT 1 FROM bookings b
+        WHERE b.company_id = p_company_id
+          AND b.status IN ('confirmed', 'pending')
+          AND (b.status = 'confirmed' OR (b.status = 'pending' AND b.expires_at > now()))
+          AND tstzrange(b.starts_at, b.ends_at) && tstzrange(p_starts_at, p_ends_at)
+    ) THEN
+        RAISE EXCEPTION 'Blocked interval conflicts with an active booking';
+    END IF;
+
     INSERT INTO blocked_intervals (company_id, starts_at, ends_at, reason)
     VALUES (p_company_id, p_starts_at, p_ends_at, p_reason)
     RETURNING id INTO v_id;
@@ -653,3 +765,34 @@ BEGIN
     RETURN jsonb_build_object('id', v_id, 'company_id', p_company_id, 'starts_at', p_starts_at, 'ends_at', p_ends_at, 'reason', p_reason);
 END;
 $$;
+
+-- ============================================================================
+-- RPC Permissions and Access Control
+-- ============================================================================
+-- 1. Public booking flow: accessible by anon, authenticated, and service_role
+GRANT EXECUTE ON FUNCTION public.get_company_by_slug(text) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_available_slots(uuid, uuid[], date) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.create_booking(uuid, uuid[], text, text, text, text, timestamptz) TO anon, authenticated, service_role;
+
+-- 2. Internal maintenance: revoked from public and anon, callable by authenticated and service_role
+REVOKE EXECUTE ON FUNCTION public.cleanup_expired_bookings(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.cleanup_expired_bookings(uuid) TO authenticated, service_role;
+
+-- 3. Administrative functions: revoked from public and anon, granted only to authenticated and service_role
+REVOKE EXECUTE ON FUNCTION public.confirm_booking(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.confirm_booking(uuid) TO authenticated, service_role;
+
+REVOKE EXECUTE ON FUNCTION public.cancel_booking(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.cancel_booking(uuid) TO authenticated, service_role;
+
+REVOKE EXECUTE ON FUNCTION public.reschedule_booking(uuid, timestamptz) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.reschedule_booking(uuid, timestamptz) TO authenticated, service_role;
+
+REVOKE EXECUTE ON FUNCTION public.complete_booking(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.complete_booking(uuid) TO authenticated, service_role;
+
+REVOKE EXECUTE ON FUNCTION public.create_manual_booking(uuid, text, text, text, text, text, numeric, timestamptz, timestamptz, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.create_manual_booking(uuid, text, text, text, text, text, numeric, timestamptz, timestamptz, text) TO authenticated, service_role;
+
+REVOKE EXECUTE ON FUNCTION public.create_blocked_interval(uuid, timestamptz, timestamptz, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.create_blocked_interval(uuid, timestamptz, timestamptz, text) TO authenticated, service_role;

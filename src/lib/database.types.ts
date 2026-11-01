@@ -115,6 +115,27 @@ export interface Database {
         }
         Update: Partial<Database['public']['Tables']['bookings']['Insert']>
       }
+      booking_idempotency_records: {
+        Row: {
+          id: string
+          company_id: string
+          idempotency_key: string
+          booking_id: string | null
+          params_hash: string
+          response_data: unknown
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          idempotency_key: string
+          booking_id?: string | null
+          params_hash: string
+          response_data: unknown
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['booking_idempotency_records']['Insert']>
+      }
     }
     Functions: {
       get_company_by_slug: {
@@ -138,6 +159,7 @@ export interface Database {
           p_car_make: string
           p_car_model: string
           p_starts_at: string
+          p_idempotency_key?: string
         }
         Returns: unknown
       }

@@ -28,14 +28,19 @@ export const BookingSuccessModal: React.FC<BookingSuccessModalProps> = ({
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md animate-fade-up">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="booking-success-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md animate-fade-up"
+    >
       <div className="relative w-full max-w-lg rounded-3xl border border-white/20 bg-zinc-950 p-6 sm:p-8 shadow-2xl">
         {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
           className="absolute top-5 right-5 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
-          aria-label="Закрыть"
+          aria-label="Закрыть модальное окно"
         >
           <X size={18} />
         </button>
@@ -49,7 +54,7 @@ export const BookingSuccessModal: React.FC<BookingSuccessModalProps> = ({
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
               Заявка успешно создана
             </span>
-            <h3 className="text-xl font-extrabold text-white">
+            <h3 id="booking-success-title" className="text-xl font-extrabold text-white">
               Номер брони: {booking.public_code}
             </h3>
           </div>
