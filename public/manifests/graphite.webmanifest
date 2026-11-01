@@ -1,0 +1,26 @@
+{
+  "id": "/s/graphite/",
+  "name": "GRAPHITE Detailing",
+  "short_name": "GRAPHITE Det",
+  "description": "Премиальный детейлинг, оклейка антигравийной плёнкой и керамическая защита кузова",
+  "start_url": "/s/graphite/",
+  "scope": "/s/graphite/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080809",
+  "theme_color": "#4690FF",
+  "icons": [
+    {
+      "src": "https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=200&q=80",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=200&q=80",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

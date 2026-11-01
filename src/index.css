@@ -1,0 +1,208 @@
+@layer reset, theme, base, astryx-base, astryx-theme, components, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "@astryxdesign/core/reset.css";
+@import "@astryxdesign/core/astryx.css";
+@import "@astryxdesign/theme-neutral/theme.css";
+@import "@astryxdesign/core/tailwind-theme.css";
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* ─── Design tokens ─────────────────────────────────────── */
+:root {
+  --bg-base:      #0a0a0b;
+  --bg-surface:   #111114;
+  --bg-elevated:  #18181c;
+  --bg-overlay:   #1e1e24;
+
+  --border-subtle:  rgba(255,255,255,0.06);
+  --border-default: rgba(255,255,255,0.10);
+  --border-strong:  rgba(255,255,255,0.18);
+
+  --text-primary:   #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted:     #52525b;
+
+  --tenant-accent:     #4690FF;
+  --tenant-accent-rgb: 70, 144, 255;
+
+  /* shadcn compat */
+  --background: 0 0% 4%;
+  --foreground:  0 0% 96%;
+  --card:        0 0% 7%;
+  --card-foreground: 0 0% 96%;
+  --border:  0 0% 11%;
+  --input:   0 0% 13%;
+  --radius:  0.75rem;
+  color-scheme: dark;
+}
+
+/* ─── Base ───────────────────────────────────────────────── */
+html, body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin: 0; padding: 0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* ─── Safe areas ─────────────────────────────────────────── */
+.safe-bottom { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.safe-top    { padding-top:    max(16px, env(safe-area-inset-top)); }
+
+/* ─── Glass surfaces ─────────────────────────────────────── */
+.glass-nav {
+  background: rgba(10,10,11,0.88);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--border-default);
+  box-shadow: 0 -1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.glass-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  transition: border-color 0.15s ease;
+}
+.glass-card:hover { border-color: var(--border-default); }
+
+.glass-modal {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  box-shadow: 0 24px 64px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+/* ─── Primary CTA button ─────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 14px;
+  background: #fff;
+  color: #0a0a0b;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 12px rgba(255,255,255,0.12);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-primary:hover  { background: #e4e4e7; box-shadow: 0 4px 20px rgba(255,255,255,0.16); }
+.btn-primary:active { transform: scale(0.97); }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 13px;
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-ghost:hover { background: var(--bg-elevated); color: var(--text-primary); border-color: var(--border-strong); }
+.btn-ghost:active { transform: scale(0.97); }
+
+.btn-accent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--tenant-accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-accent:hover  { opacity: 0.88; }
+.btn-accent:active { transform: scale(0.97); }
+
+/* ─── Input fields ───────────────────────────────────────── */
+.field {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+.field::placeholder { color: var(--text-muted); }
+.field:focus {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.06);
+}
+
+/* ─── Slot / date pill ───────────────────────────────────── */
+.slot-pill {
+  padding: 8px 4px;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  white-space: nowrap;
+}
+.slot-pill:hover { background: var(--bg-overlay); color: var(--text-primary); border-color: var(--border-default); }
+.slot-pill.active {
+  background: #fff;
+  border-color: #fff;
+  color: #0a0a0b;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+
+/* ─── Animations ─────────────────────────────────────────── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fade-up 0.25s cubic-bezier(0.16,1,0.3,1) both; }
+
+@keyframes slide-in-bottom {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.animate-slide-up { animation: slide-in-bottom 0.32s cubic-bezier(0.16,1,0.3,1) both; }
+
+/* ─── Reduced motion ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

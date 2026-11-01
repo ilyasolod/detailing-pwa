@@ -1,0 +1,26 @@
+{
+  "id": "/s/motorplus/",
+  "name": "MOTOR PLUS Автосервис",
+  "short_name": "MOTOR PLUS А",
+  "description": "Профессиональный ремонт, плановое ТО, диагностика и обслуживание иномарок",
+  "start_url": "/s/motorplus/",
+  "scope": "/s/motorplus/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080809",
+  "theme_color": "#FF6B35",
+  "icons": [
+    {
+      "src": "https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=200&q=80",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=200&q=80",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

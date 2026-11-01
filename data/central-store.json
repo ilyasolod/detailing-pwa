@@ -1,0 +1,97 @@
+{
+  "bookings": [
+    {
+      "id": "bk_graphite_demo_1",
+      "tenant_id": "tenant_graphite",
+      "occupancy_id": "occ_graphite_demo_1",
+      "service_id": "srv_graphite_1",
+      "resource_id": "res_graphite_1",
+      "client_name": "Алексей С.",
+      "client_phone": "+7 (916) 111-22-33",
+      "client_vehicle": "Porsche Cayenne",
+      "price_snapshot": 8000,
+      "status": "confirmed",
+      "access_token_hash": "demo_token_hash_1",
+      "idempotency_key": "demo_graphite_1",
+      "start_at": "2026-10-30T06:00:00.000Z",
+      "end_at": "2026-10-30T08:00:00.000Z",
+      "notes": "Помыть диски с особым вниманием",
+      "is_demo": true,
+      "created_at": "2026-10-29T16:48:15.032Z",
+      "updated_at": "2026-10-29T16:48:15.032Z"
+    },
+    {
+      "id": "bk_motorplus_demo_1",
+      "tenant_id": "tenant_motorplus",
+      "occupancy_id": "occ_motorplus_demo_1",
+      "service_id": "srv_motorplus_1",
+      "resource_id": "res_motorplus_1",
+      "client_name": "Алексей С.",
+      "client_phone": "+7 (916) 111-22-33",
+      "client_vehicle": "Porsche Cayenne",
+      "price_snapshot": 8000,
+      "status": "confirmed",
+      "access_token_hash": "demo_token_hash_1",
+      "idempotency_key": "demo_motorplus_1",
+      "start_at": "2026-10-30T06:00:00.000Z",
+      "end_at": "2026-10-30T08:00:00.000Z",
+      "notes": "Помыть диски с особым вниманием",
+      "is_demo": true,
+      "created_at": "2026-10-29T16:48:15.032Z",
+      "updated_at": "2026-10-29T16:48:15.032Z"
+    },
+    {
+      "id": "bk_1793292499196_lrap6",
+      "tenant_id": "tenant_graphite",
+      "occupancy_id": "occ_1793292499196_mio3t",
+      "service_id": "srv_graphite_1",
+      "resource_id": "res_graphite_1",
+      "client_name": "Виктор Тестов",
+      "client_phone": "+7 (999) 765-43-21",
+      "client_vehicle": "Porsche 911 Turbo",
+      "price_snapshot": 8000,
+      "status": "confirmed",
+      "access_token_hash": "ab9a44dfbe7ebd19c1aa2e6bb7e4d26a366c7cc04a3a3bac6691ada852dcd4d5",
+      "idempotency_key": "tenant_graphite:srv_graphite_1:2026-10-30T04:00:00.000Z:+7 (999) 765-43-21",
+      "start_at": "2026-10-30T04:00:00.000Z",
+      "end_at": "2026-10-30T05:30:00.000Z",
+      "notes": null,
+      "parts_option": "none",
+      "vin_or_plate": null,
+      "parts_status": "none",
+      "is_demo": false,
+      "created_at": "2026-10-29T16:48:19.196Z",
+      "updated_at": "2026-10-29T16:48:19.196Z"
+    }
+  ],
+  "occupancies": [
+    {
+      "id": "occ_graphite_demo_1",
+      "tenant_id": "tenant_graphite",
+      "resource_id": "res_graphite_1",
+      "occupancy_type": "booking",
+      "start_at": "2026-10-30T06:00:00.000Z",
+      "end_at": "2026-10-30T08:00:00.000Z",
+      "created_at": "2026-10-29T16:48:15.032Z"
+    },
+    {
+      "id": "occ_motorplus_demo_1",
+      "tenant_id": "tenant_motorplus",
+      "resource_id": "res_motorplus_1",
+      "occupancy_type": "booking",
+      "start_at": "2026-10-30T06:00:00.000Z",
+      "end_at": "2026-10-30T08:00:00.000Z",
+      "created_at": "2026-10-29T16:48:15.032Z"
+    },
+    {
+      "id": "occ_1793292499196_mio3t",
+      "tenant_id": "tenant_graphite",
+      "resource_id": "res_graphite_1",
+      "occupancy_type": "booking",
+      "start_at": "2026-10-30T04:00:00.000Z",
+      "end_at": "2026-10-30T05:30:00.000Z",
+      "created_at": "2026-10-29T16:48:19.196Z"
+    }
+  ],
+  "payments": []
+}
