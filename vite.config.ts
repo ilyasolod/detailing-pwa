@@ -77,9 +77,11 @@ function centralSyncPlugin(): Plugin {
   }
 }
 
+const basePath = process.env.VITE_BASE_PATH || '/'
+
 // https://vite.dev/config/
 export default defineConfig({
-  base: process.env.VITE_BASE_PATH || '/',
+  base: basePath,
   plugins: [
     react(),
     tailwindcss(),
@@ -100,11 +102,11 @@ export default defineConfig({
         background_color: '#0A0A0C',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
-        scope: '/',
+        start_url: basePath,
+        scope: basePath,
         icons: [
           {
-            src: '/favicon.svg',
+            src: `${basePath.replace(/\/$/, '')}/favicon.svg`,
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any maskable',
